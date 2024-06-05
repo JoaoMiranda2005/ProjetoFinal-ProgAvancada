@@ -8,6 +8,16 @@ import numpy as np
 import face_recognition
 from datetime import datetime
 from enum import Enum
+import mysql.connector
+
+# Configurações de conexão com o banco de dados
+db = mysql.connector.connect(
+    host="joaomiranda.xyz",
+    user="trabalhofinal",
+    password="12345678",
+    database="gestao_animais"
+)
+cursor = db.cursor()
 
 # Criar o diretório para armazenar as imagens capturadas
 if not os.path.exists("ImagesBasic"):
@@ -218,7 +228,6 @@ class AplicacaoFatura:
 
         self.botao_mostrar = ttk.Button(root, text="Mostrar Faturas", command=self.mostrar_faturas)
         self.botao_mostrar.grid(row=5, column=0, columnspan=2, pady=10)
-
     def adicionar_fatura(self):
         nome_cliente = self.entry_nome_cliente.get()
         tipo_servico = self.combo_tipo_servico.get()
@@ -261,6 +270,206 @@ class AplicacaoFatura:
 
         text_area.config(state='disabled')
 
+class GerenciadorDonos:
+    def __init__(self, root):
+        self.root = root
+
+        # Widgets para entrada de dados do dono
+        self.label_nome_dono = ttk.Label(root, text="Nome do Dono:")
+        self.label_nome_dono.grid(row=0, column=0, padx=10, pady=5)
+        self.entry_nome_dono = ttk.Entry(root)
+        self.entry_nome_dono.grid(row=0, column=1, padx=10, pady=5)
+
+        self.label_endereco = ttk.Label(root, text="Endereço:")
+        self.label_endereco.grid(row=1, column=0, padx=10, pady=5)
+        self.entry_endereco = ttk.Entry(root)
+        self.entry_endereco.grid(row=1, column=1, padx=10, pady=5)
+
+        self.label_telefone = ttk.Label(root, text="Telefone:")
+        self.label_telefone.grid(row=2, column=0, padx=10, pady=5)
+        self.entry_telefone = ttk.Entry(root)
+        self.entry_telefone.grid(row=2, column=1, padx=10, pady=5)
+
+        # Botão para adicionar dono
+        self.botao_adicionar_dono = ttk.Button(root, text="Adicionar Dono", command=self.adicionar_dono)
+        self.botao_adicionar_dono.grid(row=3, column=0, columnspan=2, pady=10)
+
+    # Método para adicionar dono ao banco de dados
+    def adicionar_dono(self):
+        nome_dono = self.entry_nome_dono.get()
+        endereco = self.entry_endereco.get()
+        telefone = self.entry_telefone.get()
+
+        # Verificar se todos os campos foram preenchidos
+        if not nome_dono or not endereco or not telefone:
+            messagebox.showerror("Erro", "Todos os campos são obrigatórios!")
+            return
+
+        # Inserir dono no banco de dados
+        try:
+            cursor.execute("INSERT INTO donos (nome, endereco, telefone) VALUES (%s, %s, %s)",
+                           (nome_dono, endereco, telefone))
+            db.commit()
+            messagebox.showinfo("Sucesso", "Dono adicionado com sucesso!")
+        except Exception as e:
+            db.rollback()
+            messagebox.showerror("Erro", f"Erro ao adicionar dono: {e}")
+
+        # Limpar os campos de entrada após adicionar o dono
+        self.entry_nome_dono.delete(0, tk.END)
+        self.entry_endereco.delete(0, tk.END)
+        self.entry_telefone.delete(0, tk.END)
+
+class GerenciadorAnimais:
+    def __init__(self, root):
+        self.root = root
+
+        # Widgets para entrada de dados do animal
+        self.label_nome_animal = ttk.Label(root, text="Nome do Animal:")
+        self.label_nome_animal.grid(row=0, column=0, padx=10, pady=5)
+        self.entry_nome_animal = ttk.Entry(root)
+        self.entry_nome_animal.grid(row=0, column=1, padx=10, pady=5)
+
+        self.label_especie = ttk.Label(root, text="Espécie:")
+        self.label_especie.grid(row=1, column=0, padx=10, pady=5)
+        self.entry_especie = ttk.Entry(root)
+        self.entry_especie.grid(row=1, column=1, padx=10, pady=5)
+
+        self.label_raca = ttk.Label(root, text="Raça:")
+        self.label_raca.grid(row=2, column=0, padx=10, pady=5)
+        self.entry_raca = ttk.Entry(root)
+        self.entry_raca.grid(row=2, column=1, padx=10, pady=5)
+
+        self.label_idade = ttk.Label(root, text="Idade:")
+        self.label_idade.grid(row=3, column=0, padx=10, pady=5)
+        self.entry_idade = ttk.Entry(root)
+        self.entry_idade.grid(row=3, column=1, padx=10, pady=5)
+
+        self.label_id_cliente = ttk.Label(root, text="ID do Cliente:")
+        self.label_id_cliente.grid(row=4, column=0, padx=10, pady=5)
+        self.entry_id_cliente = ttk.Entry(root)
+        self.entry_id_cliente.grid(row=4, column=1, padx=10, pady=5)
+
+        # Botão para adicionar animal
+        self.botao_adicionar_animal = ttk.Button(root, text="Adicionar Animal", command=self.adicionar_animal)
+        self.botao_adicionar_animal.grid(row=5, column=0, columnspan=2, pady=10)
+
+    # Método para adicionar animal ao banco de dados
+    def adicionar_animal(self):
+        nome_animal = self.entry_nome_animal.get()
+        especie = self.entry_especie.get()
+        raca = self.entry_raca.get()
+        idade = self.entry_idade.get()
+        id_cliente = self.entry_id_cliente.get()
+
+        # Verificar se todos os campos foram preenchidos
+        if not nome_animal or not especie or not raca or not idade or not id_cliente:
+            messagebox.showerror("Erro", "Todos os campos são obrigatórios!")
+            return
+
+        # Inserir animal no banco de dados
+        try:
+            cursor.execute("INSERT INTO animais (nome, especie, raca, idade, id_dono) VALUES (%s, %s, %s, %s, %s)",
+                           (nome_animal, especie, raca, idade, id_cliente))
+            db.commit()
+            messagebox.showinfo("Sucesso", "Animal adicionado com sucesso!")
+        except Exception as e:
+            db.rollback()
+            messagebox.showerror("Erro", f"Erro ao adicionar animal: {e}")
+
+        # Limpar os campos de entrada após adicionar o animal
+        self.entry_nome_animal.delete(0, tk.END)
+        self.entry_especie.delete(0, tk.END)
+        self.entry_raca.delete(0, tk.END)
+        self.entry_idade.delete(0, tk.END)
+        self.entry_id_cliente.delete(0, tk.END)
+class DonoAnimal:
+    def __init__(self, nome_dono, nome_animal, especie, raca, idade):
+        self.nome_dono = nome_dono
+        self.nome_animal = nome_animal
+        self.especie = especie
+        self.raca = raca
+        self.idade = idade
+
+    def __str__(self):
+        return (f"Dono: {self.nome_dono}, Animal: {self.nome_animal}, "
+                f"Espécie: {self.especie}, Raça: {self.raca}, Idade: {self.idade}")
+
+class AplicacaoGestao:
+    def __init__(self, root):
+        self.root = root
+        self.donos_animais = []
+
+        self.label_nome_dono = ttk.Label(root, text="Nome do Dono:")
+        self.label_nome_dono.grid(row=0, column=0, padx=10, pady=5)
+        self.entry_nome_dono = ttk.Entry(root)
+        self.entry_nome_dono.grid(row=0, column=1, padx=10, pady=5)
+
+        self.label_nome_animal = ttk.Label(root, text="Nome do Animal:")
+        self.label_nome_animal.grid(row=1, column=0, padx=10, pady=5)
+        self.entry_nome_animal = ttk.Entry(root)
+        self.entry_nome_animal.grid(row=1, column=1, padx=10, pady=5)
+
+        self.label_especie = ttk.Label(root, text="Espécie:")
+        self.label_especie.grid(row=2, column=0, padx=10, pady=5)
+        self.entry_especie = ttk.Entry(root)
+        self.entry_especie.grid(row=2, column=1, padx=10, pady=5)
+
+        self.label_raca = ttk.Label(root, text="Raça:")
+        self.label_raca.grid(row=3, column=0, padx=10, pady=5)
+        self.entry_raca = ttk.Entry(root)
+        self.entry_raca.grid(row=3, column=1, padx=10, pady=5)
+
+        self.label_idade = ttk.Label(root, text="Idade:")
+        self.label_idade.grid(row=4, column=0, padx=10, pady=5)
+        self.entry_idade = ttk.Entry(root)
+        self.entry_idade.grid(row=4, column=1, padx=10, pady=5)
+
+        self.botao_adicionar = ttk.Button(root, text="Adicionar Animal", command=self.adicionar_animal)
+        self.botao_adicionar.grid(row=5, column=0, columnspan=2, pady=10)
+
+        self.botao_mostrar = ttk.Button(root, text="Mostrar Donos e Animais", command=self.mostrar_donos_animais)
+        self.botao_mostrar.grid(row=6, column=0, columnspan=2, pady=10)
+
+    def adicionar_animal(self):
+        nome_dono = self.entry_nome_dono.get()
+        nome_animal = self.entry_nome_animal.get()
+        especie = self.entry_especie.get()
+        raca = self.entry_raca.get()
+        idade = self.entry_idade.get()
+
+        if not nome_dono or not nome_animal or not especie or not raca or not idade:
+            messagebox.showerror("Erro", "Todos os campos são obrigatórios!")
+            return
+
+        try:
+            idade = int(idade)
+        except ValueError:
+            messagebox.showerror("Erro", "Idade deve ser um número válido!")
+            return
+
+        dono_animal = DonoAnimal(nome_dono, nome_animal, especie, raca, idade)
+        self.donos_animais.append(dono_animal)
+
+        messagebox.showinfo("Sucesso", "Animal adicionado com sucesso!")
+
+        self.entry_nome_dono.delete(0, tk.END)
+        self.entry_nome_animal.delete(0, tk.END)
+        self.entry_especie.delete(0, tk.END)
+        self.entry_raca.delete(0, tk.END)
+        self.entry_idade.delete(0, tk.END)
+
+    def mostrar_donos_animais(self):
+        janela_donos_animais = tk.Toplevel(self.root)
+        janela_donos_animais.title("Donos e Animais")
+
+        text_area = tk.Text(janela_donos_animais, wrap='word')
+        text_area.pack(expand=True, fill='both')
+
+        for dono_animal in self.donos_animais:
+            text_area.insert(tk.END, str(dono_animal) + "\n")
+
+        text_area.config(state='disabled')
 
 def main():
     global root, cap
@@ -273,10 +482,14 @@ def main():
     frame_captura = ttk.Frame(notebook)
     frame_agenda = ttk.Frame(notebook)
     frame_fatura = ttk.Frame(notebook)
+    frame_animais = ttk.Frame(notebook)
+    frame_donos = ttk.Frame(notebook)  # Adicionando o frame para a guia de donos
 
     notebook.add(frame_captura, text="Gestão de Utilizadores")
     notebook.add(frame_agenda, text="Agenda")
     notebook.add(frame_fatura, text="Faturamento")
+    notebook.add(frame_animais, text="Gestão de Animais")
+    notebook.add(frame_donos, text="Gestão de Donos")  # Adicionando a guia de gestão de donos
 
     # Frame de Captura e Reconhecimento
     capture_button = tk.Button(frame_captura, text="Novo Usuário", command=capture_image)
@@ -291,6 +504,12 @@ def main():
 
     # Frame de Faturamento
     AplicacaoFatura(frame_fatura)
+
+    # Adicionando o gerenciador de animais ao frame correspondente
+    GerenciadorAnimais(frame_animais)
+
+    # Adicionando o gerenciador de donos ao frame correspondente
+    GerenciadorDonos(frame_donos)
 
     cap = cv2.VideoCapture(0)
     root.mainloop()
