@@ -175,7 +175,7 @@ class TipoServico(Enum):
     Análise = "Análise"
     Exame_clínico = "Exame clínico"
     Eutanásia = "Eutanásia"
-    Desparatisação = "Desparatisação"
+    Desparasitação = "Desparasitação"
     Internamento = "Internamento"
     Serviços_de_apoio = "Serviços de apoio"
     Urgência = "Urgência"
