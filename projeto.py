@@ -10,7 +10,6 @@ from datetime import datetime
 from enum import Enum
 import mysql.connector
 
-# Configurações de conexão com o banco de dados
 db = mysql.connector.connect(
     host="joaomiranda.xyz",
     user="trabalhofinal",
@@ -19,11 +18,9 @@ db = mysql.connector.connect(
 )
 cursor = db.cursor()
 
-# Criar o diretório para armazenar as imagens capturadas
 if not os.path.exists("ImagesBasic"):
     os.makedirs("ImagesBasic")
 
-# Função para capturar a imagem
 def capture_image():
     name_window = tk.Toplevel(root)
     name_window.title("Nome do Novo Usuário")
@@ -116,7 +113,6 @@ def recognize_faces():
     cap.release()
     cv2.destroyAllWindows()
 
-# Função para abrir a janela da agenda
 def open_agenda():
     agenda_window = tk.Toplevel(root)
     agenda_window.title("Agenda")
@@ -177,7 +173,7 @@ class TipoServico(Enum):
     Eutanásia = "Eutanásia"
     Desparasitação = "Desparasitação"
     Internamento = "Internamento"
-    Serviços_de_apoio = "Serviços de apoio"
+    Serviços_de_apoio = "Serviços de apoio"  ## Serviços de apoio são os banhos, rações e artigos para animais 
     Urgência = "Urgência"
 
 class Fatura:
@@ -228,6 +224,7 @@ class AplicacaoFatura:
 
         self.botao_mostrar = ttk.Button(root, text="Mostrar Faturas", command=self.mostrar_faturas)
         self.botao_mostrar.grid(row=5, column=0, columnspan=2, pady=10)
+        
     def adicionar_fatura(self):
         nome_cliente = self.entry_nome_cliente.get()
         tipo_servico = self.combo_tipo_servico.get()
@@ -274,7 +271,6 @@ class GerenciadorDonos:
     def __init__(self, root):
         self.root = root
 
-        # Widgets para entrada de dados do dono
         self.label_nome_dono = ttk.Label(root, text="Nome do Dono:")
         self.label_nome_dono.grid(row=0, column=0, padx=10, pady=5)
         self.entry_nome_dono = ttk.Entry(root)
@@ -290,22 +286,18 @@ class GerenciadorDonos:
         self.entry_telefone = ttk.Entry(root)
         self.entry_telefone.grid(row=2, column=1, padx=10, pady=5)
 
-        # Botão para adicionar dono
         self.botao_adicionar_dono = ttk.Button(root, text="Adicionar Dono", command=self.adicionar_dono)
         self.botao_adicionar_dono.grid(row=3, column=0, columnspan=2, pady=10)
 
-    # Método para adicionar dono ao banco de dados
     def adicionar_dono(self):
         nome_dono = self.entry_nome_dono.get()
         endereco = self.entry_endereco.get()
         telefone = self.entry_telefone.get()
 
-        # Verificar se todos os campos foram preenchidos
         if not nome_dono or not endereco or not telefone:
             messagebox.showerror("Erro", "Todos os campos são obrigatórios!")
             return
 
-        # Inserir dono no banco de dados
         try:
             cursor.execute("INSERT INTO donos (nome, endereco, telefone) VALUES (%s, %s, %s)",
                            (nome_dono, endereco, telefone))
@@ -315,7 +307,6 @@ class GerenciadorDonos:
             db.rollback()
             messagebox.showerror("Erro", f"Erro ao adicionar dono: {e}")
 
-        # Limpar os campos de entrada após adicionar o dono
         self.entry_nome_dono.delete(0, tk.END)
         self.entry_endereco.delete(0, tk.END)
         self.entry_telefone.delete(0, tk.END)
@@ -324,7 +315,6 @@ class GerenciadorAnimais:
     def __init__(self, root):
         self.root = root
 
-        # Widgets para entrada de dados do animal
         self.label_nome_animal = ttk.Label(root, text="Nome do Animal:")
         self.label_nome_animal.grid(row=0, column=0, padx=10, pady=5)
         self.entry_nome_animal = ttk.Entry(root)
@@ -350,11 +340,9 @@ class GerenciadorAnimais:
         self.entry_id_cliente = ttk.Entry(root)
         self.entry_id_cliente.grid(row=4, column=1, padx=10, pady=5)
 
-        # Botão para adicionar animal
         self.botao_adicionar_animal = ttk.Button(root, text="Adicionar Animal", command=self.adicionar_animal)
         self.botao_adicionar_animal.grid(row=5, column=0, columnspan=2, pady=10)
 
-    # Método para adicionar animal ao banco de dados
     def adicionar_animal(self):
         nome_animal = self.entry_nome_animal.get()
         especie = self.entry_especie.get()
@@ -362,12 +350,10 @@ class GerenciadorAnimais:
         idade = self.entry_idade.get()
         id_cliente = self.entry_id_cliente.get()
 
-        # Verificar se todos os campos foram preenchidos
         if not nome_animal or not especie or not raca or not idade or not id_cliente:
             messagebox.showerror("Erro", "Todos os campos são obrigatórios!")
             return
 
-        # Inserir animal no banco de dados
         try:
             cursor.execute("INSERT INTO animais (nome, especie, raca, idade, id_dono) VALUES (%s, %s, %s, %s, %s)",
                            (nome_animal, especie, raca, idade, id_cliente))
@@ -377,7 +363,6 @@ class GerenciadorAnimais:
             db.rollback()
             messagebox.showerror("Erro", f"Erro ao adicionar animal: {e}")
 
-        # Limpar os campos de entrada após adicionar o animal
         self.entry_nome_animal.delete(0, tk.END)
         self.entry_especie.delete(0, tk.END)
         self.entry_raca.delete(0, tk.END)
@@ -483,32 +468,27 @@ def main():
     frame_agenda = ttk.Frame(notebook)
     frame_fatura = ttk.Frame(notebook)
     frame_animais = ttk.Frame(notebook)
-    frame_donos = ttk.Frame(notebook)  # Adicionando o frame para a guia de donos
+    frame_donos = ttk.Frame(notebook)  
 
     notebook.add(frame_captura, text="Gestão de Utilizadores")
     notebook.add(frame_agenda, text="Agenda")
     notebook.add(frame_fatura, text="Faturamento")
     notebook.add(frame_animais, text="Gestão de Animais")
-    notebook.add(frame_donos, text="Gestão de Donos")  # Adicionando a guia de gestão de donos
+    notebook.add(frame_donos, text="Gestão de Donos")  
 
-    # Frame de Captura e Reconhecimento
     capture_button = tk.Button(frame_captura, text="Novo Usuário", command=capture_image)
     capture_button.grid(row=0, column=0, padx=10, pady=10)
 
     add_user_button = tk.Button(frame_captura, text="Reconhecer Usuário", command=recognize_faces)
     add_user_button.grid(row=0, column=1, padx=10, pady=10)
 
-    # Frame da Agenda
     open_agenda_button = tk.Button(frame_agenda, text="Abrir Agenda", command=open_agenda)
     open_agenda_button.pack(pady=20)
 
-    # Frame de Faturamento
     AplicacaoFatura(frame_fatura)
 
-    # Adicionando o gerenciador de animais ao frame correspondente
     GerenciadorAnimais(frame_animais)
 
-    # Adicionando o gerenciador de donos ao frame correspondente
     GerenciadorDonos(frame_donos)
 
     cap = cv2.VideoCapture(0)
