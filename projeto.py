@@ -1,15 +1,17 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 import cv2
-from PIL import Image, ImageTk
 import os
 import time
 import numpy as np
 import face_recognition
-from datetime import datetime
 from enum import Enum
 import mysql.connector
+import tkinter as tk
+from tkinter import messagebox
+from tkcalendar import Calendar, DateEntry
+from datetime import datetime
 
+# Configurações de conexão com o banco de dados
 db = mysql.connector.connect(
     host="joaomiranda.xyz",
     user="trabalhofinal",
@@ -17,10 +19,14 @@ db = mysql.connector.connect(
     database="gestao_animais"
 )
 cursor = db.cursor()
-
+pacientes = []
+consultas = []
+exames = []
+# Criar o diretório para armazenar as imagens capturadas
 if not os.path.exists("ImagesBasic"):
     os.makedirs("ImagesBasic")
 
+# Função para capturar a imagem
 def capture_image():
     name_window = tk.Toplevel(root)
     name_window.title("Nome do Novo Usuário")
@@ -113,57 +119,195 @@ def recognize_faces():
     cap.release()
     cv2.destroyAllWindows()
 
+# Função para abrir a janela da agenda
 def open_agenda():
-    agenda_window = tk.Toplevel(root)
-    agenda_window.title("Agenda")
+    def agendar_consulta(paciente_id, data, hora, motivo):
+        consulta = {
+            'id': len(consultas) + 1,
+            'paciente_id': paciente_id,
+            'data': data,
+            'hora': hora,
+            'motivo': motivo
+        }
+        consultas.append(consulta)
 
-    meses = [
-        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-    ]
+    # Função para agendar exame
+    def agendar_exame(paciente_id, data, hora, tipo):
+        exame = {
+            'id': len(exames) + 1,
+            'paciente_id': paciente_id,
+            'data': data,
+            'hora': hora,
+            'tipo': tipo
+        }
+        exames.append(exame)
 
-    horas = [f"{h:02d}:00" for h in range(24)]
+    # Função para listar consultas de um paciente
+    def listar_consultas(paciente_id):
+        return [consulta for consulta in consultas if consulta['paciente_id'] == paciente_id]
 
-    def add_appointment():
-        dia = day_combobox.get()
-        mes = month_combobox.get()
-        hora = hour_combobox.get()
-        compromisso = appointment_entry.get()
-        if dia and mes and hora and compromisso:
-            appointment = f"{dia} de {mes} às {hora}: {compromisso}"
-            appointments_listbox.insert(tk.END, appointment)
-            appointment_entry.delete(0, tk.END)
-            sort_appointments()
+    # Função para listar exames de um paciente
+    def listar_exames(paciente_id):
+        return [exame for exame in exames if exame['paciente_id'] == paciente_id]
 
-    def sort_appointments():
-        appointments = list(appointments_listbox.get(0, tk.END))
-        appointments.sort(key=lambda x: (meses.index(x.split()[2]), int(x.split()[0]), x.split()[4]))
-        appointments_listbox.delete(0, tk.END)
-        for appointment in appointments:
-            appointments_listbox.insert(tk.END, appointment)
+    # Função para visualizar o calendário de consultas e exames
+    def visualizar_calendario():
+        eventos = consultas + exames
+        eventos.sort(key=lambda evento: (evento['data'], evento['hora']))
+        return eventos
 
-    tk.Label(agenda_window, text="Dia:").pack(pady=5)
-    day_combobox = ttk.Combobox(agenda_window, values=list(range(1, 32)), width=5)
-    day_combobox.pack(pady=5)
+    # Funções para a interface gráfica
+    def adicionar_paciente_interface():
+        nome = nome_entry.get()
+        especie = especie_entry.get()
+        raca = raca_entry.get()
+        idade = int(idade_entry.get())
+        dono = dono_entry.get()
+        telefone = telefone_entry.get()
 
-    tk.Label(agenda_window, text="Mês:").pack(pady=5)
-    month_combobox = ttk.Combobox(agenda_window, values=meses)
-    month_combobox.pack(pady=5)
+        adicionar_paciente(nome, especie, raca, idade, dono, telefone)
+        messagebox.showinfo("Sucesso", "Paciente adicionado com sucesso!")
+        limpar_campos_paciente()
 
-    tk.Label(agenda_window, text="Hora:").pack(pady=5)
-    hour_combobox = ttk.Combobox(agenda_window, values=horas)
-    hour_combobox.pack(pady=5)
+    def limpar_campos_paciente():
+        nome_entry.delete(0, tk.END)
+        especie_entry.delete(0, tk.END)
+        raca_entry.delete(0, tk.END)
+        idade_entry.delete(0, tk.END)
+        dono_entry.delete(0, tk.END)
+        telefone_entry.delete(0, tk.END)
 
-    tk.Label(agenda_window, text="Compromisso:").pack(pady=5)
-    appointment_entry = tk.Entry(agenda_window, width=40)
-    appointment_entry.pack(pady=5)
+    def agendar_consulta_interface():
+        paciente_id = int(paciente_id_consulta_entry.get())
+        data = data_consulta_entry.get()
+        hora = hora_consulta_entry.get()
+        motivo = motivo_consulta_entry.get()
 
-    add_appointment_button = tk.Button(agenda_window, text="Adicionar Compromisso", command=add_appointment)
-    add_appointment_button.pack(pady=5)
+        agendar_consulta(paciente_id, data, hora, motivo)
+        messagebox.showinfo("Sucesso", "Consulta agendada com sucesso!")
+        limpar_campos_consulta()
 
-    appointments_listbox = tk.Listbox(agenda_window, width=50, height=10)
-    appointments_listbox.pack(pady=10)
+    def limpar_campos_consulta():
+        paciente_id_consulta_entry.delete(0, tk.END)
+        data_consulta_entry.delete(0, tk.END)
+        hora_consulta_entry.delete(0, tk.END)
+        motivo_consulta_entry.delete(0, tk.END)
 
+    def agendar_exame_interface():
+        paciente_id = int(paciente_id_exame_entry.get())
+        data = data_exame_entry.get()
+        hora = hora_exame_entry.get()
+        tipo = tipo_exame_entry.get()
+
+        agendar_exame(paciente_id, data, hora, tipo)
+        messagebox.showinfo("Sucesso", "Exame agendado com sucesso!")
+        limpar_campos_exame()
+
+    def limpar_campos_exame():
+        paciente_id_exame_entry.delete(0, tk.END)
+        data_exame_entry.delete(0, tk.END)
+        hora_exame_entry.delete(0, tk.END)
+        tipo_exame_entry.delete(0, tk.END)
+
+    def visualizar_calendario_interface():
+        eventos = visualizar_calendario()
+        calendario_text.delete('1.0', tk.END)
+        for evento in eventos:
+            tipo_evento = "Consulta" if 'motivo' in evento else "Exame"
+            descricao = evento['motivo'] if 'motivo' in evento else evento['tipo']
+            calendario_text.insert(tk.END, f"{tipo_evento}: {evento['data']} {evento['hora']} - {descricao}\n")
+
+    def atualizar_calendario():
+        eventos = visualizar_calendario()
+        calendario_widget.calevent_remove('all')
+        for evento in eventos:
+            tipo_evento = "Consulta" if 'motivo' in evento else "Exame"
+            descricao = evento['motivo'] if 'motivo' in evento else evento['tipo']
+            data_evento = datetime.strptime(evento['data'], '%Y-%m-%d').date()
+            calendario_widget.calevent_create(data_evento, descricao, tipo_evento)
+
+    # Criação da interface gráfica
+    root = tk.Tk()
+    root.title("Gestão de Clínica Veterinária")
+
+
+
+    tk.Label(root, text="Espécie:").grid(row=1, column=0)
+    especie_entry = tk.Entry(root)
+    especie_entry.grid(row=1, column=1)
+
+    tk.Label(root, text="Raça:").grid(row=2, column=0)
+    raca_entry = tk.Entry(root)
+    raca_entry.grid(row=2, column=1)
+
+    tk.Label(root, text="Idade:").grid(row=3, column=0)
+    idade_entry = tk.Entry(root)
+    idade_entry.grid(row=3, column=1)
+
+    tk.Label(root, text="Dono:").grid(row=4, column=0)
+    dono_entry = tk.Entry(root)
+    dono_entry.grid(row=4, column=1)
+
+    tk.Label(root, text="Telefone:").grid(row=5, column=0)
+    telefone_entry = tk.Entry(root)
+    telefone_entry.grid(row=5, column=1)
+
+    tk.Button(root, text="Adicionar Paciente",
+              command=lambda: [adicionar_paciente_interface(), atualizar_calendario()]).grid(row=6, column=0,
+                                                                                             columnspan=2)
+
+    # Agendar exame
+    tk.Label(root, text="ID do Paciente (Exame):").grid(row=12, column=0)
+    paciente_id_exame_entry = tk.Entry(root)
+    paciente_id_exame_entry.grid(row=12, column=1)
+
+    tk.Label(root, text="Data (aaaa-mm-dd):").grid(row=8, column=0)
+    data_consulta_entry = DateEntry(root, date_pattern='yyyy-mm-dd')
+    data_consulta_entry.grid(row=8, column=1)
+
+    tk.Label(root, text="Hora (hh:mm):").grid(row=9, column=0)
+    hora_consulta_entry = tk.Entry(root)
+    hora_consulta_entry.grid(row=9, column=1)
+
+    tk.Label(root, text="Motivo:").grid(row=10, column=0)
+    motivo_consulta_entry = tk.Entry(root)
+    motivo_consulta_entry.grid(row=10, column=1)
+
+    tk.Button(root, text="Agendar Consulta",
+              command=lambda: [agendar_consulta_interface(), atualizar_calendario()]).grid(
+        row=11, column=0, columnspan=2)
+
+    # Agendar exame
+    tk.Label(root, text="ID do Paciente (Exame):").grid(row=12, column=0)
+    paciente_id_exame_entry = tk.Entry(root)
+    paciente_id_exame_entry.grid(row=12, column=1)
+
+    tk.Label(root, text="Data (aaaa-mm-dd):").grid(row=13, column=0)
+    data_exame_entry = DateEntry(root, date_pattern='yyyy-mm-dd')
+    data_exame_entry.grid(row=13, column=1)
+
+    tk.Label(root, text="Hora (hh:mm):").grid(row=14, column=0)
+    hora_exame_entry = tk.Entry(root)
+    hora_exame_entry.grid(row=14, column=1)
+
+    tk.Label(root, text="Tipo:").grid(row=15, column=0)
+    tipo_exame_entry = tk.Entry(root)
+    tipo_exame_entry.grid(row=15, column=1)
+
+    tk.Button(root, text="Agendar Exame", command=lambda: [agendar_exame_interface(), atualizar_calendario()]).grid(
+        row=16,
+        column=0,
+        columnspan=2)
+
+    # Visualizar calendário
+    tk.Button(root, text="Visualizar Calendário", command=visualizar_calendario_interface).grid(row=17, column=0,
+                                                                                                columnspan=2)
+    calendario_text = tk.Text(root, height=10, width=50)
+    calendario_text.grid(row=18, column=0, columnspan=2)
+
+    # Widget de calendário
+    calendario_widget = Calendar(root, selectmode='day', year=2024, month=6, day=1)
+    calendario_widget.grid(row=0, column=2, rowspan=18, padx=20, pady=20)
 class TipoServico(Enum):
     Consulta_de_rotina = "Consulta de rotina"
     Vacinação = "Vacinação"
@@ -171,9 +315,9 @@ class TipoServico(Enum):
     Análise = "Análise"
     Exame_clínico = "Exame clínico"
     Eutanásia = "Eutanásia"
-    Desparasitação = "Desparasitação"
+    Desparatisação = "Desparatisação"
     Internamento = "Internamento"
-    Serviços_de_apoio = "Serviços de apoio"  ## Serviços de apoio são os banhos, rações e artigos para animais 
+    Serviços_de_apoio = "Serviços de apoio"
     Urgência = "Urgência"
 
 class Fatura:
@@ -224,7 +368,6 @@ class AplicacaoFatura:
 
         self.botao_mostrar = ttk.Button(root, text="Mostrar Faturas", command=self.mostrar_faturas)
         self.botao_mostrar.grid(row=5, column=0, columnspan=2, pady=10)
-        
     def adicionar_fatura(self):
         nome_cliente = self.entry_nome_cliente.get()
         tipo_servico = self.combo_tipo_servico.get()
@@ -271,6 +414,7 @@ class GerenciadorDonos:
     def __init__(self, root):
         self.root = root
 
+        # Widgets para entrada de dados do dono
         self.label_nome_dono = ttk.Label(root, text="Nome do Dono:")
         self.label_nome_dono.grid(row=0, column=0, padx=10, pady=5)
         self.entry_nome_dono = ttk.Entry(root)
@@ -286,18 +430,22 @@ class GerenciadorDonos:
         self.entry_telefone = ttk.Entry(root)
         self.entry_telefone.grid(row=2, column=1, padx=10, pady=5)
 
+        # Botão para adicionar dono
         self.botao_adicionar_dono = ttk.Button(root, text="Adicionar Dono", command=self.adicionar_dono)
         self.botao_adicionar_dono.grid(row=3, column=0, columnspan=2, pady=10)
 
+    # Método para adicionar dono ao banco de dados
     def adicionar_dono(self):
         nome_dono = self.entry_nome_dono.get()
         endereco = self.entry_endereco.get()
         telefone = self.entry_telefone.get()
 
+        # Verificar se todos os campos foram preenchidos
         if not nome_dono or not endereco or not telefone:
             messagebox.showerror("Erro", "Todos os campos são obrigatórios!")
             return
 
+        # Inserir dono no banco de dados
         try:
             cursor.execute("INSERT INTO donos (nome, endereco, telefone) VALUES (%s, %s, %s)",
                            (nome_dono, endereco, telefone))
@@ -307,6 +455,7 @@ class GerenciadorDonos:
             db.rollback()
             messagebox.showerror("Erro", f"Erro ao adicionar dono: {e}")
 
+        # Limpar os campos de entrada após adicionar o dono
         self.entry_nome_dono.delete(0, tk.END)
         self.entry_endereco.delete(0, tk.END)
         self.entry_telefone.delete(0, tk.END)
@@ -315,6 +464,7 @@ class GerenciadorAnimais:
     def __init__(self, root):
         self.root = root
 
+        # Widgets para entrada de dados do animal
         self.label_nome_animal = ttk.Label(root, text="Nome do Animal:")
         self.label_nome_animal.grid(row=0, column=0, padx=10, pady=5)
         self.entry_nome_animal = ttk.Entry(root)
@@ -340,9 +490,11 @@ class GerenciadorAnimais:
         self.entry_id_cliente = ttk.Entry(root)
         self.entry_id_cliente.grid(row=4, column=1, padx=10, pady=5)
 
+        # Botão para adicionar animal
         self.botao_adicionar_animal = ttk.Button(root, text="Adicionar Animal", command=self.adicionar_animal)
         self.botao_adicionar_animal.grid(row=5, column=0, columnspan=2, pady=10)
 
+    # Método para adicionar animal ao banco de dados
     def adicionar_animal(self):
         nome_animal = self.entry_nome_animal.get()
         especie = self.entry_especie.get()
@@ -350,10 +502,12 @@ class GerenciadorAnimais:
         idade = self.entry_idade.get()
         id_cliente = self.entry_id_cliente.get()
 
+        # Verificar se todos os campos foram preenchidos
         if not nome_animal or not especie or not raca or not idade or not id_cliente:
             messagebox.showerror("Erro", "Todos os campos são obrigatórios!")
             return
 
+        # Inserir animal no banco de dados
         try:
             cursor.execute("INSERT INTO animais (nome, especie, raca, idade, id_dono) VALUES (%s, %s, %s, %s, %s)",
                            (nome_animal, especie, raca, idade, id_cliente))
@@ -363,6 +517,7 @@ class GerenciadorAnimais:
             db.rollback()
             messagebox.showerror("Erro", f"Erro ao adicionar animal: {e}")
 
+        # Limpar os campos de entrada após adicionar o animal
         self.entry_nome_animal.delete(0, tk.END)
         self.entry_especie.delete(0, tk.END)
         self.entry_raca.delete(0, tk.END)
@@ -468,27 +623,32 @@ def main():
     frame_agenda = ttk.Frame(notebook)
     frame_fatura = ttk.Frame(notebook)
     frame_animais = ttk.Frame(notebook)
-    frame_donos = ttk.Frame(notebook)  
+    frame_donos = ttk.Frame(notebook)  # Adicionando o frame para a guia de donos
 
     notebook.add(frame_captura, text="Gestão de Utilizadores")
     notebook.add(frame_agenda, text="Agenda")
     notebook.add(frame_fatura, text="Faturamento")
     notebook.add(frame_animais, text="Gestão de Animais")
-    notebook.add(frame_donos, text="Gestão de Donos")  
+    notebook.add(frame_donos, text="Gestão de Donos")  # Adicionando a guia de gestão de donos
 
+    # Frame de Captura e Reconhecimento
     capture_button = tk.Button(frame_captura, text="Novo Usuário", command=capture_image)
     capture_button.grid(row=0, column=0, padx=10, pady=10)
 
     add_user_button = tk.Button(frame_captura, text="Reconhecer Usuário", command=recognize_faces)
     add_user_button.grid(row=0, column=1, padx=10, pady=10)
 
+    # Frame da Agenda
     open_agenda_button = tk.Button(frame_agenda, text="Abrir Agenda", command=open_agenda)
     open_agenda_button.pack(pady=20)
 
+    # Frame de Faturamento
     AplicacaoFatura(frame_fatura)
 
+    # Adicionando o gerenciador de animais ao frame correspondente
     GerenciadorAnimais(frame_animais)
 
+    # Adicionando o gerenciador de donos ao frame correspondente
     GerenciadorDonos(frame_donos)
 
     cap = cv2.VideoCapture(0)
